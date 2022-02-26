@@ -10,6 +10,9 @@ function Tile.new(world, x, y, w, h)
     return o
 end
 
+function Tile:update()
+
+end
 
 function Tile:draw()
     local g = love.graphics

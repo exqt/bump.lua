@@ -1,8 +1,10 @@
 local bump = require('bump')
 local Tile = require('tile')
+local Player = require('player')
 
 local world = bump.newWorld(64)
 local entities = {}
+pressed = {}
 
 function loadMap()
     local f = io.open("map.txt", "r")
@@ -19,13 +21,20 @@ function loadMap()
     f:close()
 end
 loadMap()
+table.insert(entities, Player.new(world, 0, 0))
 
 function love.load()
+end
 
+function love.keypressed(key)
+    pressed[key] = true
 end
 
 function love.update(dt)
-
+    for i, e in ipairs(entities) do
+        e:update(dt)
+    end
+    pressed = {}
 end
 
 function love.draw()
