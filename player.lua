@@ -35,11 +35,11 @@ function Player:update(dt)
     end
 
     if not self:checkGround() then
-        self.vy = self.vy + 400*dt
+        self.vy = self.vy + 900*dt
     else
         self.vy = 0
     end
-    if pressed['space'] then self.vy = -300 end
+    if pressed['space'] then self.vy = -400 end
 
     if self.vy ~= 0 then self:moveBy(0, self.vy*dt) end
 

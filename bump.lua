@@ -526,7 +526,7 @@ function World:getRect(item)
   if not rect then
     error('Item ' .. tostring(item) .. ' must be added to the world before getting its rect. Use world:add(item, x,y,w,h) to add it first.')
   end
-  return rect.x, rect.y, rect.w, rect.h
+  return rect.x, rect.y, rect.w, rect.h, rect.properies
 end
 
 function World:toWorld(cx, cy)
@@ -613,14 +613,18 @@ end
 
 --- Main methods
 
-function World:add(item, x,y,w,h)
+-- properies: { slope: string, oneway: stirng, type: string }
+function World:add(item, x,y,w,h, properies)
   local rect = self.rects[item]
   if rect then
     error('Item ' .. tostring(item) .. ' added to the world twice.')
   end
   assertIsRect(x,y,w,h)
 
-  self.rects[item] = {x=x,y=y,w=w,h=h}
+  self.rects[item] = {
+    x=x,y=y,w=w,h=h,
+    properies=properies or {}
+  }
 
   local cl,ct,cw,ch = grid_toCellRect(self.cellSize, x,y,w,h)
   for cy = ct, ct+ch-1 do
@@ -768,6 +772,19 @@ bump.responses = {
   cross  = cross,
   slide  = slide,
   bounce = bounce
+}
+
+-- chnage if your engine uses different coordinate system
+bump.consts = {
+  FLOOR_RIGHT = "FLOOR_RIGHT", -- /|
+  FLOOR_LEFT = "FLOOR_LEFT", -- |\
+  CEIL_RIGHT = "CEIL_RIGHT", -- \|
+  CEIL_LEFT = "CEIL_LEFT", -- |/
+
+  UP = "UP",
+  DOWN = "DOWN",
+  RIGHT = "RIGHT",
+  LEFT = "LEFT"
 }
 
 return bump
