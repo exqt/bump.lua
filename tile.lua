@@ -33,6 +33,16 @@ function Tile:draw()
         g.polygon("line", vertices)
         g.setColor(1, 0, 0, 0.5)
         g.polygon("fill", vertices)
+    elseif props.slope == "FLOOR_LEFT" then
+        local vertices = {
+            x, y, 
+            x, y + h,
+            x + w, y + h
+        }
+        g.setColor(1, 0, 0)
+        g.polygon("line", vertices)
+        g.setColor(1, 0, 0, 0.5)
+        g.polygon("fill", vertices)
     end
 end
 
