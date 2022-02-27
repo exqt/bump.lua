@@ -20,6 +20,10 @@ function loadMap()
                 t = Tile.new(world, (i-1)*64, y, 64*2, 64, { slope = bump.consts.FLOOR_RIGHT } )
             elseif line:sub(i, i) == "3" then
                 t = Tile.new(world, (i-1)*64, y, 64*3, 64, { slope = bump.consts.FLOOR_RIGHT } )
+            elseif line:sub(i, i) == "\\" then
+                t = Tile.new(world, (i-1)*64, y, 64*1, 64, { slope = bump.consts.FLOOR_LEFT } )
+            elseif line:sub(i, i) == "@" then
+                t = Tile.new(world, (i-1)*64, y, 64*2, 64, { slope = bump.consts.FLOOR_LEFT } )
             end
 
             table.insert(entities, t)

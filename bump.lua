@@ -68,6 +68,26 @@ local defaultFilter = function()
   return 'slide'
 end
 
+-- https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+local function lineIntersection(x1,y1,x2,y2, x3,y3,x4,y4)
+  local Q = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4)
+  if abs(Q) < DELTA then return end
+
+  local tP = (x1 - x3)*(y3 - y4) - (y1 - y3)*(x3 - x4)
+  local t = tP / Q
+  if 0 < t and t < 1 then 
+    return x1 + t*(x2 - x1), y1 + t*(y2 - y1), t
+  end
+
+  local uP = (x1 - x3)*(y1 - y2) - (y1 - y3)*(x1 - x2)
+  local u = uP / Q
+  if 0 < u and u < 1 then 
+    return x3 + u*(x4 - x3), y4 + u*(y4 - y3), u
+  end
+
+  return
+end
+
 ------------------------------------------
 -- Rectangle functions
 ------------------------------------------
@@ -115,8 +135,8 @@ end
 
 -- Calculates the minkowsky difference between 2 rects, which is another rect
 local function rect_getDiff(x1,y1,w1,h1, x2,y2,w2,h2)
-  return x2 - x1 - w1,
-         y2 - y1 - h1,
+  return x2 - (x1 + w1),
+         y2 - (y1 + h1),
          w1 + w2,
          h1 + h2
 end
@@ -199,9 +219,73 @@ local function rect_detectCollision(x1,y1,w1,h1, x2,y2,w2,h2, goalX, goalY)
   }
 end
 
-local function rect_detectCollisionSlope(x1,y1,w1,h1, x2,y2,w2,h2, goalX, goalY)
+local function rect_detectCollisionSlope(x1,y1,w1,h1, x2,y2,w2,h2, slope, goalX, goalY)
   goalX = goalX or x1
   goalY = goalY or y1
+
+  local dx, dy      = goalX - x1, goalY - y1
+  local x,y,w,h     = rect_getDiff(x1,y1,w1,h1, x2,y2,w2,h2)
+  local overlaps, ti, nx, ny
+  local nx, ny 
+  local tx, ty
+
+  if slope == "FLOOR_RIGHT" then
+    tx, ty, ti = lineIntersection(
+      x2, y2+h2, x2+w2, y2, 
+      x1+w1, y1+h1, goalX+w1, goalY+h1
+    )
+    if not ti then return end
+
+  elseif slope == "FLOOR_LEFT" then
+    tx, ty, ti = lineIntersection(
+      x2, y2, x2+w2, y2+h2, 
+      x1, y1+h1, goalX, goalY+h1
+    )
+    if not ti then return end
+
+  elseif slope == "CEIL_RIGHT" then
+    return 
+
+  elseif slope == "CEIL_LEFT" then
+    return
+
+  end
+
+  if true then
+    return rect_detectCollision(x1,y1,w1,h1, x2,y2,w2,h2, goalX, goalY)
+  end
+
+  if rect_containsPoint(x,y,w,h, 0,0) then -- item was intersecting other
+    local px, py    = rect_getNearestCorner(x,y,w,h, 0, 0)
+    local wi, hi    = min(w1, abs(px)), min(h1, abs(py)) -- area of intersection
+    ti              = -wi * hi -- ti is the negative area of intersection
+    overlaps = true
+  else
+    local ti1,ti2,nx1,ny1 = rect_getSegmentIntersectionIndices(x,y,w,h, 0,0,dx,dy, -math.huge, math.huge)
+
+    -- item tunnels into other
+    if ti1
+    and ti1 < 1
+    and (abs(ti1 - ti2) >= DELTA) -- special case for rect going through another rect's corner
+    and (0 < ti1 + DELTA
+      or 0 == ti1 and ti2 > 0)
+    then
+      ti, nx, ny = ti1, nx1, ny1
+      overlaps   = false
+    end
+  end
+
+  if not ti then return end
+
+  return {
+    overlaps  = overlaps,
+    ti        = ti,
+    move      = {x = dx, y = dy},
+    normal    = {x = nx, y = ny},
+    touch     = {x = tx, y = ty},
+    itemRect  = {x = x1, y = y1, w = w1, h = h1},
+    otherRect = {x = x2, y = y2, w = w2, h = h2}
+  }
 end
 
 ------------------------------------------
@@ -457,6 +541,7 @@ function World:project(item, x,y,w,h, goalX, goalY, filter)
   filter  = filter  or defaultFilter
 
   local collisions, len = {}, 0
+  local rect = self.rects[item]
 
   local visited = {}
   if item ~= nil then visited[item] = true end
@@ -477,8 +562,14 @@ function World:project(item, x,y,w,h, goalX, goalY, filter)
 
       local responseName = filter(item, other)
       if responseName then
-        local ox,oy,ow,oh   = self:getRect(other)
-        local col           = rect_detectCollision(x,y,w,h, ox,oy,ow,oh, goalX, goalY)
+        local ox,oy,ow,oh,oprops = self:getRect(other)
+        
+        local col
+        if not oprops.slope then
+          col = rect_detectCollision(x,y,w,h, ox,oy,ow,oh, goalX, goalY)
+        else
+          col = rect_detectCollisionSlope(x,y,w,h, ox,oy,ow,oh, slope, goalX, goalY)
+        end
 
         if col then
           col.other    = other
