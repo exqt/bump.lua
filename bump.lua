@@ -199,6 +199,11 @@ local function rect_detectCollision(x1,y1,w1,h1, x2,y2,w2,h2, goalX, goalY)
   }
 end
 
+local function rect_detectCollisionSlope(x1,y1,w1,h1, x2,y2,w2,h2, goalX, goalY)
+  goalX = goalX or x1
+  goalY = goalY or y1
+end
+
 ------------------------------------------
 -- Grid functions
 ------------------------------------------
@@ -691,6 +696,7 @@ function World:update(item, x2,y2,w2,h2)
   end
 end
 
+--TODO: prevent moving slopeRect
 function World:move(item, goalX, goalY, filter)
   local actualX, actualY, cols, len = self:check(item, goalX, goalY, filter)
 
