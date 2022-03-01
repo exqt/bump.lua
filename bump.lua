@@ -248,9 +248,14 @@ local function rect_detectCollisionSlope(x1,y1,w1,h1, x2,y2,w2,h2, slope, goalX,
   local overlaps, ti, nx, ny
   local nx, ny 
   local tx, ty
-  local asRect = false
+  local asRect = function()
+    return rect_detectCollision(x1,y1,w1,h1, x2,y2,w2,h2, goalX, goalY)
+  end
 
   if slope == "FLOOR_RIGHT" then
+    local cx, cy = x1+w1, y1+h1
+    if x2+w2 <= x1 or y2+h2 <= y1 then return asRect() end
+
     tx, ty, ti = lineIntersection(
       x1+w1, y1+h1, goalX+w1, goalY+h1,
       x2, y2+h2, x2+w2, y2 
@@ -280,10 +285,6 @@ local function rect_detectCollisionSlope(x1,y1,w1,h1, x2,y2,w2,h2, slope, goalX,
   elseif slope == "CEIL_LEFT" then
     return
 
-  end
-
-  if asRect or not ti then
-    return rect_detectCollision(x1,y1,w1,h1, x2,y2,w2,h2, goalX, goalY)
   end
 
   return {
