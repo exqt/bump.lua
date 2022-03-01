@@ -91,13 +91,15 @@ local function lineIntersection(x1,y1,x2,y2, x3,y3,x4,y4)
   local Q = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4)
   if abs(Q) < DELTA then return end
 
+
   local tP = (x1 - x3)*(y3 - y4) - (y1 - y3)*(x3 - x4)
   local t = tP / Q
-  if -DELTA < t and t < 1 then 
+
+  if DELTA < t and t < 1 then 
     return x1 + t*(x2 - x1), y1 + t*(y2 - y1), t
   end
-  if t <= -DELTA then
-    if cross(x4-x3, y4-y3, x2-x1, y2-y1) < 0 then
+  if t <= DELTA then
+    if cross(x4-x3, y4-y3, x2-x3, y2-y3) < 0 then
       return nil 
     else
       return x1, y1, 0

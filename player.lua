@@ -23,7 +23,7 @@ end
 
 function Player:checkGround()
     local actualX, actualY, cols, len = self.world:check(self, self.x, self.y + 1e-9)
-    return len > 0
+    return cols[1]
 end
 
 function Player:update(dt)
@@ -37,13 +37,14 @@ function Player:update(dt)
         self.vx = S
     end
 
-    if isDown('w') then vy = -S elseif isDown('s') then vy = S end
+    --if isDown('w') then vy = -S elseif isDown('s') then vy = S end
+
     if not self:checkGround() then
         self.vy = self.vy + 900*dt
     else
         self.vy = 0
+        if pressed['space'] then self.vy = -400 end
     end
-    if pressed['space'] then self.vy = -400 end
 
     self:moveBy(self.vx*dt, self.vy*dt)
 end
@@ -57,6 +58,7 @@ function Player:draw()
     g.setColor(0, 1, 0, 0.5)
     g.rectangle("fill", x, y, w, h)
     g.print(tostring(self.x) .. " " .. tostring(self.y), x, y)
+    g.print(tostring(self:checkGround() == nil), x, y+12)
 end
 
 return Player
