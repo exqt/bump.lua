@@ -6,6 +6,7 @@ function Player.new(world, x, y)
         world = world,
         x = x,
         y = y,
+        vx = 0,
         vy = 0
     }
     setmetatable(o, Player)
@@ -27,27 +28,24 @@ end
 
 function Player:update(dt)
     local isDown = love.keyboard.isDown
+    local S = 500
 
+    self.vx = 0
     if isDown('a') then
-        self:moveBy(-256*dt, 0)
+        self.vx = -S
     elseif isDown('d') then
-        self:moveBy(256*dt, 0)
-    end
-    if isDown('w') then
-        self:moveBy(0, -256*dt)
-    elseif isDown('s') then
-        self:moveBy(0, 256*dt)
+        self.vx = S
     end
 
-    -- if not self:checkGround() then
-    --     self.vy = self.vy + 900*dt
-    -- else
-    --     self.vy = 0
-    -- end
-    -- if pressed['space'] then self.vy = -400 end
+    if isDown('w') then vy = -S elseif isDown('s') then vy = S end
+    if not self:checkGround() then
+        self.vy = self.vy + 900*dt
+    else
+        self.vy = 0
+    end
+    if pressed['space'] then self.vy = -400 end
 
-    -- if self.vy ~= 0 then self:moveBy(0, self.vy*dt) end
-
+    self:moveBy(self.vx*dt, self.vy*dt)
 end
 
 
