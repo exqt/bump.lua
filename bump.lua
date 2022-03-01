@@ -68,7 +68,25 @@ local defaultFilter = function()
   return 'slide'
 end
 
+local function cross(x1,y1, x2,y2)
+  return x1*y2 - x2*y1
+end
+
+local function dot(x1,y1, x2,y2)
+  return x1*x2 + y1*y2
+end
+
+local function normalize(x, y)
+  local l = (x^2+y^2)^0.5
+  return x/l, y/l
+end
+
+local function length(x, y)
+  return (x^2+y^2)^0.5
+end
+
 -- https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+-- shoot a ray from (x1,y1) to (x2,y2) check if there's a hitpoint 
 local function lineIntersection(x1,y1,x2,y2, x3,y3,x4,y4)
   local Q = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4)
   if abs(Q) < DELTA then return end
@@ -78,13 +96,13 @@ local function lineIntersection(x1,y1,x2,y2, x3,y3,x4,y4)
   if 0 < t and t < 1 then 
     return x1 + t*(x2 - x1), y1 + t*(y2 - y1), t
   end
-
-  local uP = (x1 - x3)*(y1 - y2) - (y1 - y3)*(x1 - x2)
-  local u = uP / Q
-  if 0 < u and u < 1 then 
-    return x3 + u*(x4 - x3), y4 + u*(y4 - y3), u
+  if t == 0 then
+    if cross(x4-x3, y4-y3, x2-x1, y2-y1) < 0 then
+      return nil 
+    else
+      return x1, y1, 0
+    end
   end
-
   return
 end
 
@@ -228,20 +246,31 @@ local function rect_detectCollisionSlope(x1,y1,w1,h1, x2,y2,w2,h2, slope, goalX,
   local overlaps, ti, nx, ny
   local nx, ny 
   local tx, ty
+  local asRect = false
 
   if slope == "FLOOR_RIGHT" then
     tx, ty, ti = lineIntersection(
-      x2, y2+h2, x2+w2, y2, 
-      x1+w1, y1+h1, goalX+w1, goalY+h1
+      x1+w1, y1+h1, goalX+w1, goalY+h1,
+      x2, y2+h2, x2+w2, y2 
     )
-    if not ti then return end
+    if not ti then 
+      return nil
+    else
+      tx, ty = tx - w1, ty - h1
+      nx, ny = normalize(-h2, -w2)
+    end
 
   elseif slope == "FLOOR_LEFT" then
     tx, ty, ti = lineIntersection(
-      x2, y2, x2+w2, y2+h2, 
-      x1, y1+h1, goalX, goalY+h1
+      x1, y1+h1, goalX, goalY+h1,
+      x2, y2, x2+w2, y2+h2
     )
-    if not ti then return end
+    if not ti then 
+      return
+    else
+      tx, ty = tx, ty - h1
+      nx, ny = normalize(h2, -w2)
+    end
 
   elseif slope == "CEIL_RIGHT" then
     return 
@@ -251,34 +280,13 @@ local function rect_detectCollisionSlope(x1,y1,w1,h1, x2,y2,w2,h2, slope, goalX,
 
   end
 
-  if true then
+  if asRect or not ti then
     return rect_detectCollision(x1,y1,w1,h1, x2,y2,w2,h2, goalX, goalY)
   end
 
-  if rect_containsPoint(x,y,w,h, 0,0) then -- item was intersecting other
-    local px, py    = rect_getNearestCorner(x,y,w,h, 0, 0)
-    local wi, hi    = min(w1, abs(px)), min(h1, abs(py)) -- area of intersection
-    ti              = -wi * hi -- ti is the negative area of intersection
-    overlaps = true
-  else
-    local ti1,ti2,nx1,ny1 = rect_getSegmentIntersectionIndices(x,y,w,h, 0,0,dx,dy, -math.huge, math.huge)
-
-    -- item tunnels into other
-    if ti1
-    and ti1 < 1
-    and (abs(ti1 - ti2) >= DELTA) -- special case for rect going through another rect's corner
-    and (0 < ti1 + DELTA
-      or 0 == ti1 and ti2 > 0)
-    then
-      ti, nx, ny = ti1, nx1, ny1
-      overlaps   = false
-    end
-  end
-
-  if not ti then return end
-
   return {
     overlaps  = overlaps,
+    slope = slope,
     ti        = ti,
     move      = {x = dx, y = dy},
     normal    = {x = nx, y = ny},
@@ -369,13 +377,26 @@ local slide = function(world, col, x,y,w,h, goalX, goalY, filter)
   goalY = goalY or y
 
   local tch, move  = col.touch, col.move
-  if move.x ~= 0 or move.y ~= 0 then
-    if col.normal.x ~= 0 then
-      goalX = tch.x
-    else
-      goalY = tch.y
+  local ti = col.ti
+
+  if col.slope then
+    local nx, ny = col.normal.x, col.normal.y
+    local sx, sy = -ny, nx
+    local remainX, remainY = (1 - ti)*move.x, (1 - ti)*move.y
+    local dp = dot(sx, sy, remainX, remainY)
+    if dp < 0 then sx, sy, dp = ny, -nx, -dp end
+    goalX, goalY = tch.x + sx * dp, tch.y + sy * dp
+
+  else
+    if move.x ~= 0 or move.y ~= 0 then
+      if col.normal.x ~= 0 then
+        goalX = tch.x
+      else
+        goalY = tch.y
+      end
     end
   end
+
 
   col.slide = {x = goalX, y = goalY}
 
@@ -568,7 +589,7 @@ function World:project(item, x,y,w,h, goalX, goalY, filter)
         if not oprops.slope then
           col = rect_detectCollision(x,y,w,h, ox,oy,ow,oh, goalX, goalY)
         else
-          col = rect_detectCollisionSlope(x,y,w,h, ox,oy,ow,oh, slope, goalX, goalY)
+          col = rect_detectCollisionSlope(x,y,w,h, ox,oy,ow,oh, oprops.slope, goalX, goalY)
         end
 
         if col then
@@ -882,6 +903,10 @@ bump.consts = {
   DOWN = "DOWN",
   RIGHT = "RIGHT",
   LEFT = "LEFT"
+}
+
+bump.utils = {
+  lineIntersection = lineIntersection
 }
 
 return bump

@@ -33,15 +33,20 @@ function Player:update(dt)
     elseif isDown('d') then
         self:moveBy(256*dt, 0)
     end
-
-    if not self:checkGround() then
-        self.vy = self.vy + 900*dt
-    else
-        self.vy = 0
+    if isDown('w') then
+        self:moveBy(0, -256*dt)
+    elseif isDown('s') then
+        self:moveBy(0, 256*dt)
     end
-    if pressed['space'] then self.vy = -400 end
 
-    if self.vy ~= 0 then self:moveBy(0, self.vy*dt) end
+    -- if not self:checkGround() then
+    --     self.vy = self.vy + 900*dt
+    -- else
+    --     self.vy = 0
+    -- end
+    -- if pressed['space'] then self.vy = -400 end
+
+    -- if self.vy ~= 0 then self:moveBy(0, self.vy*dt) end
 
 end
 

@@ -38,6 +38,7 @@ local player = Player.new(world, 0, 64*5)
 table.insert(entities, player)
 
 function love.load()
+    print("!")
 end
 
 function love.keypressed(key)
