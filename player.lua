@@ -46,7 +46,8 @@ function Player:update(dt)
         if pressed['space'] then self.vy = -400 end
     end
 
-    self:moveBy(self.vx*dt, self.vy*dt)
+    self:moveBy(self.vx*dt, 0)
+    self:moveBy(0, self.vy*dt)
 end
 
 

@@ -86,11 +86,9 @@ local function length(x, y)
 end
 
 -- https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
--- shoot a ray from (x1,y1) to (x2,y2) check if there's a hitpoint 
 local function lineIntersection(x1,y1,x2,y2, x3,y3,x4,y4)
   local Q = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4)
   if abs(Q) < DELTA then return end
-
 
   local tP = (x1 - x3)*(y3 - y4) - (y1 - y3)*(x3 - x4)
   local t = tP / Q
@@ -254,10 +252,12 @@ local function rect_detectCollisionSlope(x1,y1,w1,h1, x2,y2,w2,h2, slope, goalX,
 
   if slope == "FLOOR_RIGHT" then
     local cx, cy = x1+w1, y1+h1
-    if x2+w2 <= x1 or y2+h2 <= y1 then return asRect() end
+    local gx, gy = goalX+w1, goalY+h1
+    local ti1, _, tnx, tny = rect_getSegmentIntersectionIndices(x2,y2,w2+DELTA,h2+DELTA, cx,cy,gx,gy) 
+    if not ti1 or (tnx == 1 and tny == 0) or (tnx == 0 and tny == 1) then return asRect() end -- bottom, right
 
     tx, ty, ti = lineIntersection(
-      x1+w1, y1+h1, goalX+w1, goalY+h1,
+      cx, cy, gx, gy,
       x2, y2+h2, x2+w2, y2 
     )
     if not ti then 
@@ -268,12 +268,17 @@ local function rect_detectCollisionSlope(x1,y1,w1,h1, x2,y2,w2,h2, slope, goalX,
     end
 
   elseif slope == "FLOOR_LEFT" then
+    local cx, cy = x1, y1+h1
+    local gx, gy = goalX, goalY+h1
+    local ti1, _, tnx, tny = rect_getSegmentIntersectionIndices(x2-DELTA,y2,w2+DELTA,h2+DELTA, cx,cy,gx,gy) 
+    if not ti1 or (tnx == -1 and tny == 0) or (tnx == 0 and tny == 1) then return asRect() end -- bottom, left
+
     tx, ty, ti = lineIntersection(
-      x1, y1+h1, goalX, goalY+h1,
+      cx, cy, gx, gy,
       x2, y2, x2+w2, y2+h2
     )
     if not ti then 
-      return
+      return nil
     else
       tx, ty = tx, ty - h1
       nx, ny = normalize(h2, -w2)
