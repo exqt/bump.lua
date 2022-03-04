@@ -34,7 +34,7 @@ function loadMap()
 end
 loadMap()
 
-local player = Player.new(world, 0, 64*5)
+local player = Player.new(world, 64, 64*5)
 table.insert(entities, player)
 
 function love.load()

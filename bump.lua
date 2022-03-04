@@ -864,7 +864,7 @@ end
 
 -- Public library functions
 
-bump.newWorld = function(cellSize)
+bump.newWorld = function(cellSize, layerInteractions)
   cellSize = cellSize or 64
   assertIsPositiveNumber(cellSize, 'cellSize')
   local world = setmetatable({
@@ -872,7 +872,8 @@ bump.newWorld = function(cellSize)
     rects          = {},
     rows           = {},
     nonEmptyCells  = {},
-    responses = {}
+    responses = {},
+    layerInteractions = layerInteractions or {}
   }, World_mt)
 
   world:addResponse('touch', touch)
